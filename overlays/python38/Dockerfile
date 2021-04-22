@@ -1,4 +1,4 @@
-FROM quay.io/thoth-station/s2i-thoth-ubi8-py38:v0.26.0
+FROM preethivenk/s2i-conda-py37:latest
 LABEL name="s2i-minimal-notebook:latest" \
       summary="Minimal Jupyter Notebook Source-to-Image for Python 3.8 applications." \
       description="Notebook image based on Source-to-Image.These images can be used in OpenDatahub JupterHub." \
@@ -11,9 +11,7 @@ LABEL name="s2i-minimal-notebook:latest" \
       io.openshift.s2i.build.source-location="https://github/thoth-station/s2i-minimal-notebook" \
       io.openshift.s2i.build.image="quay.io/thoth-station/s2i-thoth-ubi8-py38:v0.26.0"
 
-ENV JUPYTER_LAB_ENABLE="1" \
-    ENABLE_MICROPIPENV="1" \
-    UPGRADE_PIP_TO_LATEST="1" \
+ENV ENABLE_MICROPIPENV="1" \
     THAMOS_RUNTIME_ENVIRONMENT="python38" \
     THOTH_ADVISE="0" \
     THOTH_ERROR_FALLBACK="1" \
@@ -28,12 +26,22 @@ RUN curl -sL https://rpm.nodesource.com/setup_14.x | bash -  && \
   yum remove -y nodejs && \
   yum install -y nodejs
 
+ENV PATH="/opt/anaconda3/bin:$PATH"
+#SHELL ["conda", "run", "-p", "/opt/app-root", "/bin/bash", "-c"]
+
+
 # Copying in override assemble/run scripts
+ 
 COPY .s2i/bin /tmp/scripts
 # Copying in source code
 COPY . /tmp/src
 # Change file ownership to the assemble user. Builder image must support chown command.
 RUN chown -R 1001:0 /tmp/scripts /tmp/src
 USER 1001
+
+RUN pip install supervisor
+RUN conda install -c conda-forge jupyter_contrib_nbextensions
+#RUN conda install -c intel intel-aikit-tensorflow
+
 RUN /tmp/scripts/assemble
 CMD /tmp/scripts/run
